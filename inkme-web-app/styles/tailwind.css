@@ -55,7 +55,8 @@
   }
 
   .input:focus,
-  .button:focus {
+  .button:focus,
+  .checkbox:focus {
     @apply outline-none shadow-outline;
   }
 }
@@ -74,5 +75,5 @@
 
 input:checked ~ .toggle__dot {
   transform: translateX(100%);
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-accent);
 }

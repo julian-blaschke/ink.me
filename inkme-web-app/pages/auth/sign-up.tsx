@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Link from "next/link";
 import {
   createContext,
   Dispatch,
@@ -10,6 +11,8 @@ import {
   useState,
 } from "react";
 import { useForm } from "react-hook-form";
+import { fromEvent, Subject } from "rxjs";
+import { debounceTime, tap } from "rxjs/operators";
 
 type Step = "basic" | "username" | "facebook";
 type BasicSignUpData = { email: string; password: string; isArtist: boolean };
@@ -48,7 +51,6 @@ const EmailAndPasswordForm = () => {
 
   //focus email field on page load
   useEffect(() => emailRef.current?.focus(), []);
-  console.log("rerender");
 
   return (
     <>
@@ -92,27 +94,40 @@ const EmailAndPasswordForm = () => {
             ref={register()}
           />
         </div>
-        <div className="flex flex-row justify-between items-center">
-          <label className="label inline pb-1" htmlFor="isArtist">
-            I am a Tattoo Artist
-          </label>
-          <input
-            className="checkbox"
-            onChange={(e) =>
-              dispatch({
-                type: "setData",
-                data: { isArtist: e.target.checked },
-              })
-            }
-            id="isArtist"
-            type="checkbox"
-            name="isArtist"
-            ref={register()}
-          />
+        <div>
+          <div className="flex flex-row justify-between items-center">
+            <label className="label inline pb-1" htmlFor="isArtist">
+              I am a Tattoo Artist
+            </label>
+            <input
+              className="checkbox"
+              onChange={(e) =>
+                dispatch({
+                  type: "setData",
+                  data: { isArtist: e.target.checked },
+                })
+              }
+              id="isArtist"
+              type="checkbox"
+              name="isArtist"
+              ref={register()}
+            />
+          </div>
+          <p className="text-gray-500 text-sm font-light">
+            This is important: Your ink.me experience depends on wheter you are
+            an artist or a potential customer. There will be no way to later on
+            change your preference!
+          </p>
         </div>
         <button className="button text-primary" type="submit">
           Next
         </button>
+        <p className="text-center text-secondary">
+          Already have an Account?{" "}
+          <Link href="/auth/sign-in">
+            <span className="inline underline cursor-pointer"> Sign In</span>
+          </Link>
+        </p>
       </form>
     </>
   );
@@ -121,6 +136,10 @@ const EmailAndPasswordForm = () => {
 const ChooseUsernameForm = () => {
   const { state, dispatch } = useContext(SignUpContext);
   const [username, setUsername] = useState<string>(state.data.username || "");
+  const [message, setMessage] = useState<string>();
+  const usernameRef = useRef<HTMLInputElement>();
+  const onChange = useRef(new Subject());
+
   const onSubmit = () => {
     dispatch({ type: "setData", data: { username } });
     if (state.data.isArtist) {
@@ -128,18 +147,36 @@ const ChooseUsernameForm = () => {
     }
     //TODO: redirect to dashboard and give intro
   };
+
+  useEffect(() => usernameRef.current?.focus(), []);
+
+  useEffect(() => {
+    onChange.current
+      .pipe(
+        tap(() => setMessage("")),
+        debounceTime(1000)
+      )
+      .subscribe((e) => {
+        console.log(e);
+      });
+  }, []);
+
   return (
     <>
       <h1 className="font-semibold text-4xl">Choose your username</h1>
-      <div className="mt-20 flex flex-col space-y-6">
+      <form className="mt-20 flex flex-col space-y-6" onSubmit={onSubmit}>
         <div>
           <label className="label pb-1" htmlFor="email">
             Username
           </label>
           <input
             required
+            ref={usernameRef}
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              onChange.current.next(e.target.value);
+            }}
             minLength={3}
             maxLength={20}
             autoComplete="username"
@@ -157,16 +194,14 @@ const ChooseUsernameForm = () => {
             </p>
           ) : null}
         </div>
-        <button className="button text-primary" onClick={onSubmit}>
-          Next
-        </button>
+        <button className="button text-primary">Next</button>
         <a
           className="text-center text-secondary cursor-pointer"
           onClick={() => dispatch({ type: "next", step: "basic" })}
         >
           Go Back
         </a>
-      </div>
+      </form>
     </>
   );
 };
@@ -183,7 +218,7 @@ const ConnectToFacebook = () => {
           Facebook Profile (that is connected to your Instagram-Account) with
           your ink.me Profile.
         </p>
-        <div className="flex flex-row justify-between space-x-4 md:flex-col md:space-x-0 md:space-y-4">
+        <div className="flex flex-col justify-between space-y-4 md:flex-row md:space-y-0 md:space-x-4">
           <button className="button text-primary">Connect to Facebook</button>
           <button className="button text-primary bg-primary border-2 border-primary">
             Finish
