@@ -1,7 +1,7 @@
 const IndexPage = () => (
-  <div title="Home | Next.js + TypeScript Example">
-    <h1>Hello Next.js 👋</h1>
-  </div>
+  <main title="Home | Next.js + TypeScript Example">
+    <h1>ink.me</h1>
+  </main>
 );
 
 export default IndexPage;

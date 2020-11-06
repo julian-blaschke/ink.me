@@ -1,0 +1,78 @@
+:root {
+  @apply light;
+}
+
+.dark {
+  --color-bg-primary: #1a202c;
+  --color-bg-secondary: #4a5568;
+  --color-bg-accent: #90cdf4;
+  --color-text-primary: #f7fafc;
+  --color-text-secondary: #e2e8f0;
+  --color-text-accent: #2c5282;
+  --color-border-primary: #e2e8f0;
+}
+
+.light {
+  --color-bg-primary: #f7fafc;
+  --color-bg-secondary: #edf2f7;
+  --color-bg-accent: #90cdf4;
+  --color-text-primary: #1a202c;
+  --color-text-secondary: #4a5568;
+  --color-text-accent: #90cdf4;
+  --color-border-primary: #4a5568;
+}
+
+/* purgecss start ignore */
+@tailwind base;
+@tailwind components;
+/* purgecss end ignore */
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-primary text-primary;
+  }
+}
+
+@layer components {
+  .input {
+    @apply bg-secondary appearance-none  rounded w-full py-2 px-4 leading-tight border-primary;
+  }
+
+  .checkbox {
+    @apply h-5 w-5 bg-primary rounded leading-tight border-primary;
+  }
+  .checkbox:checked {
+    @apply bg-accent;
+  }
+
+  .label {
+    @apply block text-lg text-secondary;
+  }
+
+  .button {
+    @apply rounded w-full py-2 px-4 bg-accent shadow;
+  }
+
+  .input:focus,
+  .button:focus {
+    @apply outline-none shadow-outline;
+  }
+}
+
+@layer utilities {
+  .heading1 {
+    @apply text-4xl font-semibold;
+  }
+}
+
+.toggle__dot {
+  top: -0.25rem;
+  left: -0.25rem;
+  transition: all 0.3s ease-in-out;
+}
+
+input:checked ~ .toggle__dot {
+  transform: translateX(100%);
+  background-color: var(--color-bg-secondary);
+}
