@@ -1,7 +1,3 @@
-const IndexPage = () => (
-  <main title="Home | Next.js + TypeScript Example">
-    <h1>ink.me</h1>
-  </main>
-);
+const IndexPage = () => <main></main>;
 
 export default IndexPage;

@@ -1,281 +1,104 @@
-import Head from "next/head";
-import Link from "next/link";
-import {
-  createContext,
-  Dispatch,
-  useContext,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from "react";
+import { useRouter } from "next/dist/client/router";
 import { useForm } from "react-hook-form";
-import { fromEvent, Subject } from "rxjs";
-import { debounceTime, tap } from "rxjs/operators";
+import Head from "next/head";
+import app from "../../firebase";
 
-type Step = "basic" | "username" | "facebook";
-type BasicSignUpData = { email: string; password: string; isArtist: boolean };
-type SignUpData = BasicSignUpData & { username: string };
-type SignUpState = { step: Step; data: Partial<SignUpData> };
-const defaultState: SignUpState = { step: "basic", data: {} };
-const SignUpContext = createContext<{
-  state: SignUpState;
-  dispatch: Dispatch<Action>;
-}>({ state: defaultState, dispatch: (e) => null });
-type Action =
-  | { type: "next"; step: Step }
-  | { type: "setData"; data: Partial<SignUpData> };
-
-const reducer = (state: SignUpState, action: Action): SignUpState => {
-  switch (action.type) {
-    case "next":
-      return { ...state, step: action.step };
-    case "setData":
-      return { ...state, data: { ...state.data, ...action.data } };
-    default:
-      return state;
-  }
-};
-
-const EmailAndPasswordForm = () => {
-  const { state, dispatch } = useContext(SignUpContext);
-  const { register, handleSubmit } = useForm<{ email: string }>({
-    defaultValues: state.data,
-  });
-  const emailRef = useRef<HTMLInputElement>(null);
-  const onSubmit = (values: BasicSignUpData) => {
-    dispatch({ type: "setData", data: values });
-    dispatch({ type: "next", step: "username" });
-  };
-
-  //focus email field on page load
-  useEffect(() => emailRef.current?.focus(), []);
-
-  return (
-    <>
-      <h1 className="font-semibold text-4xl">Create your account!</h1>
-      <form
-        className="mt-20 flex flex-col space-y-6"
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <div>
-          <label className="label pb-1" htmlFor="email">
-            Email
-          </label>
-          <input
-            required
-            autoComplete="email"
-            className="input"
-            id="email"
-            name="email"
-            type="email"
-            placeholder="sample@email.com"
-            ref={(e) => {
-              register(e);
-              emailRef.current = e;
-            }}
-          />
-        </div>
-        <div>
-          <label className="label pb-1" htmlFor="password">
-            Password
-          </label>
-          <input
-            required
-            autoComplete="current-password"
-            minLength={6}
-            maxLength={20}
-            className="input"
-            name="password"
-            id="password"
-            type="password"
-            placeholder="Password1234"
-            ref={register()}
-          />
-        </div>
-        <div>
-          <div className="flex flex-row justify-between items-center">
-            <label className="label inline pb-1" htmlFor="isArtist">
-              I am a Tattoo Artist
-            </label>
-            <input
-              className="checkbox"
-              onChange={(e) =>
-                dispatch({
-                  type: "setData",
-                  data: { isArtist: e.target.checked },
-                })
-              }
-              id="isArtist"
-              type="checkbox"
-              name="isArtist"
-              ref={register()}
-            />
-          </div>
-          <p className="text-gray-500 text-sm font-light">
-            This is important: Your ink.me experience depends on wheter you are
-            an artist or a potential customer. There will be no way to later on
-            change your preference!
-          </p>
-        </div>
-        <button className="button text-primary" type="submit">
-          Next
-        </button>
-        <p className="text-center text-secondary">
-          Already have an Account?{" "}
-          <Link href="/auth/sign-in">
-            <span className="inline underline cursor-pointer"> Sign In</span>
-          </Link>
-        </p>
-      </form>
-    </>
-  );
-};
-
-const ChooseUsernameForm = () => {
-  const { state, dispatch } = useContext(SignUpContext);
-  const [username, setUsername] = useState<string>(state.data.username || "");
-  const [message, setMessage] = useState<string>();
-  const usernameRef = useRef<HTMLInputElement>();
-  const onChange = useRef(new Subject());
-
-  const onSubmit = () => {
-    dispatch({ type: "setData", data: { username } });
-    if (state.data.isArtist) {
-      dispatch({ type: "next", step: "facebook" });
-    }
-    //TODO: redirect to dashboard and give intro
-  };
-
-  useEffect(() => usernameRef.current?.focus(), []);
-
-  useEffect(() => {
-    onChange.current
-      .pipe(
-        tap(() => setMessage("")),
-        debounceTime(1000)
-      )
-      .subscribe((e) => {
-        console.log(e);
-      });
-  }, []);
-
-  return (
-    <>
-      <h1 className="font-semibold text-4xl">Choose your username</h1>
-      <form className="mt-20 flex flex-col space-y-6" onSubmit={onSubmit}>
-        <div>
-          <label className="label pb-1" htmlFor="email">
-            Username
-          </label>
-          <input
-            required
-            ref={usernameRef}
-            value={username}
-            onChange={(e) => {
-              setUsername(e.target.value);
-              onChange.current.next(e.target.value);
-            }}
-            minLength={3}
-            maxLength={20}
-            autoComplete="username"
-            className="input"
-            id="username"
-            name="username"
-            type="username"
-            placeholder="your-username-21"
-          />
-          {state.data.isArtist ? (
-            <p className="mt-2 text-gray-500 text-sm font-light">
-              You should use your artists name you are known for in the
-              industry. It makes you easier to find for customers that already
-              know you by that name.
-            </p>
-          ) : null}
-        </div>
-        <button className="button text-primary">Next</button>
-        <a
-          className="text-center text-secondary cursor-pointer"
-          onClick={() => dispatch({ type: "next", step: "basic" })}
-        >
-          Go Back
-        </a>
-      </form>
-    </>
-  );
-};
-
-const ConnectToFacebook = () => {
-  const { dispatch } = useContext(SignUpContext);
-  return (
-    <>
-      <h1 className="font-semibold text-4xl">Link with Instagram</h1>
-      <div className="flex flex-col space-y-6">
-        <p className="mt-2 text-gray-500 text-sm font-light">
-          We noticed that tatoo artists like to share their work on Instagram.
-          To include your insta feed on your ink.me profile you can link your
-          Facebook Profile (that is connected to your Instagram-Account) with
-          your ink.me Profile.
-        </p>
-        <div className="flex flex-col justify-between space-y-4 md:flex-row md:space-y-0 md:space-x-4">
-          <button className="button text-primary">Connect to Facebook</button>
-          <button className="button text-primary bg-primary border-2 border-primary">
-            Finish
-          </button>
-        </div>
-        <a
-          className="text-center text-secondary cursor-pointer"
-          onClick={() => dispatch({ type: "next", step: "username" })}
-        >
-          Go Back
-        </a>
-      </div>
-    </>
-  );
-};
+interface SignUpData {
+  username: string;
+  password: string;
+  isArtist: boolean;
+}
 
 const SignUpPage = () => {
-  const [state, dispatch] = useReducer(reducer, defaultState);
-  const stepNr = useMemo(() => {
-    switch (state.step) {
-      case "basic":
-        return 1;
-      case "username":
-        return 2;
-      case "facebook":
-        return 3;
-    }
-  }, [state.step]);
-  const totalSteps = useMemo(() => (state.data.isArtist ? 3 : 2), [
-    state.data.isArtist,
-  ]);
-
+  const { query } = useRouter();
+  const { code } = query;
+  const { register, handleSubmit } = useForm<SignUpData>({
+    defaultValues: {
+      username: "julian-blaschke",
+      password: "asdöflkjö",
+      isArtist: false,
+    },
+  });
+  //for development only:
+  const createUser = app.functions().httpsCallable("createUser");
+  const onSubmit = async ({ username, isArtist, password }: SignUpData) => {
+    try {
+      const result = await createUser({ code, username, isArtist, password });
+      console.log(result);
+    } catch (error) {}
+  };
   return (
-    <SignUpContext.Provider value={{ state, dispatch }}>
+    <div className="mt-10 p-6 flex flex-col items-center">
       <Head>
         <title>Sign up - ink.me</title>
         <meta
           name="description"
           content="Sign up and become part of the ink.me community"
         />
-        <meta name="" />
       </Head>
-      <div className="mt-10 p-6 flex flex-col items-center">
-        <div className="w-full sm:max-w-md">
-          <span className="text-gray-500 font-light">
-            Step {stepNr} of {totalSteps}
-          </span>
-          {state.step === "basic" ? (
-            <EmailAndPasswordForm></EmailAndPasswordForm>
-          ) : state.step === "username" ? (
-            <ChooseUsernameForm></ChooseUsernameForm>
-          ) : (
-            <ConnectToFacebook></ConnectToFacebook>
-          )}
-        </div>
+      <div className="w-full sm:max-w-md">
+        <span className="text-gray-500 font-light">Almost done!</span>
+        <h1 className="font-semibold text-4xl">Finish your Sign up</h1>
+        <form className="mt-10 grid gap-6" onSubmit={handleSubmit(onSubmit)}>
+          <div>
+            <label htmlFor="username" className="label pb-1">
+              Username
+            </label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              className="input"
+              placeholder="my-username-21"
+              autoComplete="nickname"
+              ref={register()}
+              required
+              minLength={3}
+              maxLength={25}
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="label pb-1">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              className="input"
+              placeholder="password1234"
+              autoComplete="new-password"
+              ref={register()}
+              required
+              minLength={5}
+              maxLength={40}
+            />
+          </div>
+          <div>
+            <div className="flex flex-row justify-between items-center">
+              <label className="label inline pb-1" htmlFor="isArtist">
+                I am a Tattoo Artist
+              </label>
+              <input
+                id="isArtist"
+                name="isArtist"
+                type="checkbox"
+                className="checkbox"
+                ref={register()}
+              />
+            </div>
+            <p className="text-gray-500 text-sm font-light">
+              This is important: Your ink.me experience depends on wheter you
+              are an artist or a potential customer. There will be no way to
+              later on change your preference!
+            </p>
+          </div>
+          <button type="submit" className="button">
+            Sign up
+          </button>
+        </form>
       </div>
-    </SignUpContext.Provider>
+    </div>
   );
 };
 

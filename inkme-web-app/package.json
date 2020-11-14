@@ -2,12 +2,15 @@
   "name": "with-typescript",
   "version": "1.0.0",
   "scripts": {
+    "d": "node server.js",
     "dev": "next",
     "build": "next build",
     "start": "next start",
     "type-check": "tsc"
   },
   "dependencies": {
+    "@ant-design/icons": "^4.2.2",
+    "firebase": "^8.0.1",
     "next": "latest",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
