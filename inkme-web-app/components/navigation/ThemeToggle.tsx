@@ -12,7 +12,7 @@ const ThemeToggle = () => {
         className="text-sm cursor-pointer"
         onClick={() => setTheme(isDark ? "light" : "dark")}
       >
-        {isDark ? "🌙" : "🌞"}
+        {!isDark ? "🌙" : "🌞"}
       </span>
     </div>
   );

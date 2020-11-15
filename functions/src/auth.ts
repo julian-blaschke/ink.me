@@ -1,30 +1,36 @@
+//firebase functions:config:get > .runtimeconfig.json
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import * as request from "request";
 const serviceAccount = require("./service-account.json");
 
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 
-/**
- * Creates a configured simple-oauth2 client for Instagram.
- */
-function instagramOAuth2Client() {
-  // Instagram OAuth 2 setup
-  const credentials = {
-    client: {
-      id: functions.config().instagram.client_id,
-      secret: functions.config().instagram.client_secret,
-    },
-    auth: {
-      tokenHost: "https://api.instagram.com",
-      tokenPath: "/oauth/access_token",
-    },
-  };
-  return require("simple-oauth2").create(credentials);
+//https://medium.com/@vshelestovskyi/instagram-authentication-with-node-js-and-mongodb-edfb7b6065ad
+async function getInstagramUser(code: string) {
+  return new Promise((resolve, reject) => {
+    request(
+      {
+        url: "https://api.instagram.com/oauth/access_token",
+        method: "POST",
+        form: {
+          client_id: functions.config().instagram.client_id,
+          client_secret: functions.config().instagram.client_secret,
+          grant_type: "authorization_code",
+          code: code,
+          redirect_uri: "https://localhost:3000/auth/sign-up/",
+        },
+      },
+      (err, response, body) => {
+        if (response.statusCode != 200) return reject(err || response.toJSON());
+        return resolve(JSON.parse(body));
+      }
+    );
+  });
 }
 
 export const createUser = functions.https.onCall(async (user, context) => {
   try {
-    const oauth2 = instagramOAuth2Client();
     if (!(user.username && user.password)) {
       throw new Error(
         "please include all valid fields (username, password) in your request body!"
@@ -32,18 +38,16 @@ export const createUser = functions.https.onCall(async (user, context) => {
     }
     //user linked instagram account
     if (user.code) {
-      const results = await oauth2.authorizationCode.getToken({
-        code: user.code,
-        redirect_uri: "https://localhost:3000/auth/sign-up/",
-      });
-      console.log("RECIEVED FROM INSTAGRAM:", results);
+      const instagramResponse = await getInstagramUser(user.code);
+      user = { ...user, ...Object.assign({}, instagramResponse) };
     }
     console.log(`attempting to create user ${user.username}...`);
+    delete user.code;
     const firestoreTask = admin
       .firestore()
       .collection("users")
       .doc(user.username)
-      .set({ user });
+      .set({ ...user });
     const authTask = admin.auth().createUser({ ...user });
 
     await Promise.all([firestoreTask, authTask]);

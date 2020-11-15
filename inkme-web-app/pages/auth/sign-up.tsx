@@ -2,6 +2,7 @@ import { useRouter } from "next/dist/client/router";
 import { useForm } from "react-hook-form";
 import Head from "next/head";
 import app from "../../firebase";
+import { useEffect, useState } from "react";
 
 interface SignUpData {
   username: string;
@@ -10,7 +11,9 @@ interface SignUpData {
 }
 
 const SignUpPage = () => {
-  const { query } = useRouter();
+  const auth = app.auth();
+  const { query, push } = useRouter();
+  const [error, setError] = useState<string>();
   const { code } = query;
   const { register, handleSubmit } = useForm<SignUpData>({
     defaultValues: {
@@ -19,13 +22,24 @@ const SignUpPage = () => {
       isArtist: false,
     },
   });
+
+  useEffect(() => {
+    console.log(auth.currentUser);
+    if (auth.currentUser) push("/");
+  }, []);
+
   //for development only:
   const createUser = app.functions().httpsCallable("createUser");
   const onSubmit = async ({ username, isArtist, password }: SignUpData) => {
     try {
-      const result = await createUser({ code, username, isArtist, password });
-      console.log(result);
-    } catch (error) {}
+      const { data } = await createUser({ code, username, isArtist, password });
+      const { token } = data;
+      await auth.signInWithCustomToken(token);
+      push("/");
+    } catch (error) {
+      console.error(error);
+      setError(error);
+    }
   };
   return (
     <div className="mt-10 p-6 flex flex-col items-center">
@@ -96,6 +110,7 @@ const SignUpPage = () => {
           <button type="submit" className="button">
             Sign up
           </button>
+          <span className="text-sm text-red-500 text-center">{error}</span>
         </form>
       </div>
     </div>

@@ -1,5 +1,5 @@
 //credit: https://jeffjadulco.com/blog/dark-mode-react-tailwind/
-import { createContext, FC, useEffect, useLayoutEffect, useState } from "react";
+import { createContext, FC, useEffect, useState } from "react";
 
 export type Theme = "light" | "dark";
 
@@ -38,7 +38,7 @@ export const ThemeProvider: FC = ({ children }) => {
     localStorage.setItem("color-theme", theme);
   };
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     setTheme(getInitialTheme());
   }, []);
 

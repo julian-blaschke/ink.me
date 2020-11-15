@@ -1,8 +1,8 @@
 import app from "firebase/app";
+import "firebase/auth";
 import "firebase/firestore";
 import "firebase/storage";
 import "firebase/functions";
-import "firebase/auth";
 import { firebaseConfig } from "./firebase.config";
 
 export const firebase = !app.apps.length
@@ -10,4 +10,3 @@ export const firebase = !app.apps.length
   : app.app();
 
 export default app;
-export const auth = app.auth();
